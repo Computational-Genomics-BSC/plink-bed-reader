@@ -1,0 +1,37 @@
+name: Semantic Release
+
+on: workflow_dispatch
+
+jobs:
+  release:
+    environment:
+        name: pypi
+        url: https://pypi.org/p/plink-bed-reader
+      permissions:
+        id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    runs-on: ubuntu-latest
+    concurrency: release
+
+    steps:
+    - uses: actions/checkout@master
+      with:
+        fetch-depth: 0
+
+    - name: Python Semantic Release
+      id: release
+      uses: relekang/python-semantic-release@v9.8.3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Publish package distributions to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      # The following line is required to ensure that the package is only published to PyPI when a new version is released.
+      # NOTE: DO NOT wrap the conditional in ${{ }} as it will always evaluate to true.
+      # See https://github.com/actions/runner/issues/1173
+      if: steps.release.outputs.released == 'true'
+
+    - name: Publish package distributions to GitHub Releases
+      uses: python-semantic-release/upload-to-gh-release@v8.7.0
+      if: steps.release.outputs.released == 'true'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}

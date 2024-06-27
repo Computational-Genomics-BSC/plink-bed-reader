@@ -6,9 +6,10 @@ if __name__ == '__main__':
     import os
     import sys
     sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)) + '/../src/')
+    # Import the package
     from plink_bed_reader import PLINKBEDReader, BEDMode
 
-    # Load the PLINK BED file
+    # Load the PLINK BED file (we include the mode for sanity check, but it is optional)
     bed = PLINKBEDReader('./input_test_data/test.bed', mode=BEDMode.SNP_MAJOR)
 
     # Print the number of SNPs and samples
