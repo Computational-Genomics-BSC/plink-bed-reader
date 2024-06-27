@@ -1,5 +1,7 @@
-import re
 from setuptools import setup, find_packages
+
+__version__ = "0.0.1"
+__author__ = 'Rapsssito'
 
 if __name__ == '__main__':
     with open("README.md", "r", encoding="utf-8") as fh:
@@ -10,12 +12,8 @@ if __name__ == '__main__':
 
     with open("src/plink_bed_reader/__init__.py", "r", encoding="utf-8") as fd:
         init_content = fd.read()
-    version = re.search(
-        r'^__version__\s*=\s*[\'\"]([^\'\"]*)[\'\"]', init_content, re.MULTILINE
-    ).group(1)
-    author = re.search(
-        r'^__author__\s*=\s*[\'\"]([^\'\"]*)[\'\"]', init_content, re.MULTILINE
-    ).group(1)
+    version = __version__
+    author = __author__
 
     setup(
         name='plink-bed-reader',
