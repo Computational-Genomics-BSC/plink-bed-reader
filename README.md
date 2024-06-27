@@ -10,7 +10,7 @@
 
 ## Getting started
 ### Installation
-VariantExtractor is available on PyPI and can be installed using `pip`:
+`plink-bed-reader` is available on PyPI and can be installed using `pip`:
 ```bash
 pip install plink-bed-reader
 ```
