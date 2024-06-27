@@ -4,13 +4,13 @@ on: workflow_dispatch
 
 jobs:
   release:
+    runs-on: ubuntu-latest
+    concurrency: release
     environment:
         name: pypi
         url: https://pypi.org/p/plink-bed-reader
-      permissions:
-        id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
-    runs-on: ubuntu-latest
-    concurrency: release
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
 
     steps:
     - uses: actions/checkout@master
