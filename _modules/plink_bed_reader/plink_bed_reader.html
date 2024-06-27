@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>plink_bed_reader.plink_bed_reader &mdash; plink-bed-reader 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            plink-bed-reader
+          </a>
+              <div class="version">
+                0.0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../plink_bed_reader.html">plink_bed_reader API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">plink-bed-reader</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">plink_bed_reader.plink_bed_reader</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for plink_bed_reader.plink_bed_reader</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2024 - Barcelona Supercomputing Center</span>
+<span class="c1"># Author: Rodrigo Martin</span>
+<span class="c1"># MIT License</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">auto</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="BEDMode">
+<a class="viewcode-back" href="../../plink_bed_reader.html#plink_bed_reader.BEDMode">[docs]</a>
+<span class="k">class</span> <span class="nc">BEDMode</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enum with the possible modes of a BED file&quot;&quot;&quot;</span>
+    <span class="n">SNP_MAJOR</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">INDIVIDUAL_MAJOR</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_get_major_mode</span><span class="p">(</span><span class="n">bed_file</span><span class="p">:</span> <span class="n">io</span><span class="o">.</span><span class="n">BufferedReader</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BEDMode</span><span class="p">:</span>
+    <span class="c1"># Save byte position</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">bed_file</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+    <span class="c1"># Read the mode byte to check if the file is in SNP major or individual major mode</span>
+    <span class="n">bed_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_SET</span><span class="p">)</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">bed_file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Restore byte position</span>
+    <span class="n">bed_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_SET</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x01</span><span class="s1">&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">BEDMode</span><span class="o">.</span><span class="n">SNP_MAJOR</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x00</span><span class="s1">&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">BEDMode</span><span class="o">.</span><span class="n">INDIVIDUAL_MAJOR</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid mode byte&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_read_sample_snp_counts</span><span class="p">(</span><span class="n">fam_file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">bim_file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="n">sample_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">snp_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># Count the number of samples and SNPs in the file</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fam_file_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;UTF-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fam_file</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">fam_file</span><span class="p">:</span>
+            <span class="n">sample_count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">bim_file_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;UTF-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">bim_file</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">bim_file</span><span class="p">:</span>
+            <span class="n">snp_count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">sample_count</span><span class="p">,</span> <span class="n">snp_count</span>
+
+
+<div class="viewcode-block" id="PLINKBEDReader">
+<a class="viewcode-back" href="../../plink_bed_reader.html#plink_bed_reader.PLINKBEDReader">[docs]</a>
+<span class="k">class</span> <span class="nc">PLINKBEDReader</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads PLINK BED files (individual major or SNP major) and returns the genotypes as a NumPy array (uint8).</span>
+<span class="sd">    The file is read in chunks to reduce memory usage and allows for random access.</span>
+<span class="sd">    Matching the PLINK format specification (https://www.cog-genomics.org/plink/1.9/formats#bed), the genotypes are encoded as follows:</span>
+<span class="sd">    0 = homozygous major</span>
+<span class="sd">    1 = heterozygous</span>
+<span class="sd">    2 = missing</span>
+<span class="sd">    3 = homozygous minor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PLINKBEDReader.__init__">
+<a class="viewcode-back" href="../../plink_bed_reader.html#plink_bed_reader.PLINKBEDReader.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bed_file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">count</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BEDMode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fam_file_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">bim_file_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        bed_file_path : str</span>
+<span class="sd">            Path to the BED file (can be with or without the extension). Admits both SNP major and individual major modes.</span>
+<span class="sd">        offset : int, optional</span>
+<span class="sd">            Number of samples or SNPs to skip at the beginning of the file, depending on the major mode.</span>
+<span class="sd">        count : int, optional</span>
+<span class="sd">            Number of samples or SNPs to read from the file, depending on the major mode.</span>
+<span class="sd">        mode : BEDMode, optional</span>
+<span class="sd">            Major mode of the file. The mode will be inferred from the file. If the mode is provided, it will be used as a sanity check.</span>
+<span class="sd">        fam_file_path : str, optional</span>
+<span class="sd">            Path to the FAM file. If not provided, it will be inferred from the BED file.</span>
+<span class="sd">        bim_file_path : str, optional</span>
+<span class="sd">            Path to the BIM file. If not provided, it will be inferred from the BED file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bed_prefix</span> <span class="o">=</span> <span class="n">bed_file_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="k">if</span> <span class="n">bed_file_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.bed&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">bed_file_path</span>
+        <span class="n">fam_file_path</span> <span class="o">=</span> <span class="n">bed_prefix</span> <span class="o">+</span> <span class="s1">&#39;.fam&#39;</span> <span class="k">if</span> <span class="n">fam_file_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">fam_file_path</span>
+        <span class="n">bim_file_path</span> <span class="o">=</span> <span class="n">bed_prefix</span> <span class="o">+</span> <span class="s1">&#39;.bim&#39;</span> <span class="k">if</span> <span class="n">bim_file_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">bim_file_path</span>
+        <span class="c1"># Count the number of samples and SNPs in the file</span>
+        <span class="n">raw_sample_count</span><span class="p">,</span> <span class="n">raw_snp_count</span> <span class="o">=</span> <span class="n">_read_sample_snp_counts</span><span class="p">(</span><span class="n">fam_file_path</span><span class="p">,</span> <span class="n">bim_file_path</span><span class="p">)</span>
+        <span class="c1"># Open the BED file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bed_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">bed_prefix</span> <span class="o">+</span> <span class="s1">&#39;.bed&#39;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span>
+        <span class="c1"># Check if the file is in SNP major or individual major mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_major_mode</span> <span class="o">=</span> <span class="n">_get_major_mode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bed_file</span><span class="p">)</span>
+        <span class="c1"># Check if the mode is correct</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mode</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_major_mode</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Mismatch mode </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s1"> for file </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_major_mode</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_offset</span> <span class="o">=</span> <span class="n">offset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_major_mode</span> <span class="o">==</span> <span class="n">BEDMode</span><span class="o">.</span><span class="n">INDIVIDUAL_MAJOR</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sample_count</span> <span class="o">=</span> <span class="n">raw_sample_count</span> <span class="o">-</span> <span class="n">offset</span> <span class="k">if</span> <span class="n">count</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">count</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_snp_count</span> <span class="o">=</span> <span class="n">raw_snp_count</span>
+            <span class="c1"># We are in individual major mode, so each byte contains 4 SNPs</span>
+            <span class="c1"># The chunk size is rounded up to the nearest byte</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chunk_size_bytes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_snp_count</span> <span class="o">/</span> <span class="mi">4</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_major_mode</span> <span class="o">==</span> <span class="n">BEDMode</span><span class="o">.</span><span class="n">SNP_MAJOR</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sample_count</span> <span class="o">=</span> <span class="n">raw_sample_count</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_snp_count</span> <span class="o">=</span> <span class="n">raw_snp_count</span> <span class="o">-</span> <span class="n">offset</span> <span class="k">if</span> <span class="n">count</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">count</span>
+            <span class="c1"># We are in SNP major mode, so each byte contains 4 samples</span>
+            <span class="c1"># The chunk size is rounded up to the nearest byte</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chunk_size_bytes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_count</span> <span class="o">/</span> <span class="mi">4</span><span class="p">))</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sample_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of samples&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_count</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">snp_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of SNPs&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_snp_count</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">major_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Major mode of the file&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_major_mode</span>
+
+<div class="viewcode-block" id="PLINKBEDReader.close">
+<a class="viewcode-back" href="../../plink_bed_reader.html#plink_bed_reader.PLINKBEDReader.close">[docs]</a>
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Close the BED file&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bed_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_read_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]]:</span>
+        <span class="c1"># Check if the file is closed</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bed_file</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;I/O operation on closed BED file&quot;</span><span class="p">)</span>
+        <span class="c1"># Check if the index is out of bounds</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Index out of bounds </span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Skip the header (first 3 bytes are magic numbers and mode)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bed_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">3</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunk_size_bytes</span> <span class="o">*</span> <span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_offset</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_SET</span><span class="p">)</span>
+
+        <span class="c1"># Read the chunk</span>
+        <span class="n">chunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bed_file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chunk_size_bytes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">chunk</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unexpected end of BED file&quot;</span><span class="p">)</span>
+        <span class="c1"># Convert the chunk to a NumPy array</span>
+        <span class="n">bit_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">chunk</span>
+        <span class="c1"># The array has one byte per SNP/Sample</span>
+        <span class="n">bit_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unpackbits</span><span class="p">(</span><span class="n">bit_array</span><span class="p">)</span>
+        <span class="c1"># The array is stored as two bits per SNP/Sample, but in reverse in each byte, sum them to get the array</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="p">(</span><span class="n">bit_array</span><span class="p">[::</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">bit_array</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">bit_array</span>
+        <span class="c1"># Each block of 4 bit SNP/Sample is stored in reverse order</span>
+        <span class="c1"># 0 = homozygous major</span>
+        <span class="c1"># 1 = heterozygous</span>
+        <span class="c1"># 2 = missing</span>
+        <span class="c1"># 3 = homozygous minor</span>
+        <span class="c1"># Reverse the order of the SNP/Sample in the block</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">)[:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># Flatten the array</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="c1"># Remove the extra bits</span>
+        <span class="k">return</span> <span class="n">array</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_snp_count</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_major_mode</span> <span class="o">==</span> <span class="n">BEDMode</span><span class="o">.</span><span class="n">INDIVIDUAL_MAJOR</span> <span class="k">else</span> <span class="n">array</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_count</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_count</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_major_mode</span> <span class="o">==</span> <span class="n">BEDMode</span><span class="o">.</span><span class="n">INDIVIDUAL_MAJOR</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_snp_count</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_read_idx</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">*</span><span class="n">key</span><span class="o">.</span><span class="n">indices</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)))],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_idx</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Rapsssito.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
