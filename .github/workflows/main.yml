@@ -11,6 +11,7 @@ jobs:
         url: https://pypi.org/p/plink-bed-reader
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+      contents: write
 
     steps:
     - uses: actions/checkout@master
@@ -19,7 +20,7 @@ jobs:
 
     - name: Python Semantic Release
       id: release
-      uses: relekang/python-semantic-release@v9.8.3
+      uses: python-semantic-release/python-semantic-release@v9.8.3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
     
@@ -31,7 +32,8 @@ jobs:
       if: steps.release.outputs.released == 'true'
 
     - name: Publish package distributions to GitHub Releases
-      uses: python-semantic-release/upload-to-gh-release@v8.7.0
+      uses: python-semantic-release/upload-to-gh-release@v9.8.3
       if: steps.release.outputs.released == 'true'
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ steps.release.outputs.tag }}
