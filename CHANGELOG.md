@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.0.1 (2024-07-03)
+
+### Fix
+
+* fix: Remove homozygous minor and major to match PLINK ([`b6aa974`](https://github.com/Computational-Genomics-BSC/plink-bed-reader/commit/b6aa9744588ac38742f9ec29f17a4b3cfbaaee4a))
+
 ## v1.0.0 (2024-06-27)
 
 ### Breaking
