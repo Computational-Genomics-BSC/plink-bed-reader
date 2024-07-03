@@ -48,10 +48,10 @@ class PLINKBEDReader():
     Reads PLINK BED files (individual major or SNP major) and returns the genotypes as a NumPy array (uint8).
     The file is read in chunks to reduce memory usage and allows for random access.
     Matching the PLINK format specification (https://www.cog-genomics.org/plink/1.9/formats#bed), the genotypes are encoded as follows:
-    0 = homozygous major
+    0 = homozygous 1/1 (usually minor)
     1 = heterozygous
     2 = missing
-    3 = homozygous minor
+    3 = homozygous 2/2 (usually major)
     """
 
     def __init__(self, bed_file_path: str, offset: int = 0, count: Optional[int] = None, mode: Optional[BEDMode] = None, fam_file_path: Optional[str] = None, bim_file_path: Optional[str] = None):
@@ -140,10 +140,10 @@ class PLINKBEDReader():
         array = (bit_array[::2] + 2 * bit_array[1::2]).astype(np.uint8)
         del bit_array
         # Each block of 4 bit SNP/Sample is stored in reverse order
-        # 0 = homozygous major
+        # 0 = homozygous 1/1 (usually minor)
         # 1 = heterozygous
         # 2 = missing
-        # 3 = homozygous minor
+        # 3 = homozygous 2/2 (usually major)
         # Reverse the order of the SNP/Sample in the block
         array = array.reshape(-1, 4)[:, ::-1]
         # Flatten the array
