@@ -1,6 +1,9 @@
 name: Semantic Release
 
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   release:
@@ -24,16 +27,34 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Publish package distributions to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      # The following line is required to ensure that the package is only published to PyPI when a new version is released.
-      # NOTE: DO NOT wrap the conditional in ${{ }} as it will always evaluate to true.
-      # See https://github.com/actions/runner/issues/1173
-      if: steps.release.outputs.released == 'true'
+    # - name: Publish package distributions to PyPI
+    #   uses: pypa/gh-action-pypi-publish@release/v1
+    #   # The following line is required to ensure that the package is only published to PyPI when a new version is released.
+    #   # NOTE: DO NOT wrap the conditional in ${{ }} as it will always evaluate to true.
+    #   # See https://github.com/actions/runner/issues/1173
+    #   if: steps.release.outputs.released == 'true'
 
-    - name: Publish package distributions to GitHub Releases
-      uses: python-semantic-release/upload-to-gh-release@v9.8.3
+    # - name: Publish package distributions to GitHub Releases
+    #   uses: python-semantic-release/upload-to-gh-release@v9.8.3
+    #   if: steps.release.outputs.released == 'true'
+    #   with:
+    #     github_token: ${{ secrets.GITHUB_TOKEN }}
+    #     tag: ${{ steps.release.outputs.tag }}
+
+    - name: Set permissions  # Sphinx needs write permissions to perform the checkout
+      run: |
+        sudo chmod -R 777 .
+
+    - id: deployment_docs
+      uses: sphinx-notes/pages@v3
+      with:
+        publish: false
+        documentation_path: './docs/source'
+        requirements_path: './requeriments_docs.txt'
       if: steps.release.outputs.released == 'true'
+  
+    - uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        tag: ${{ steps.release.outputs.tag }}
+        publish_dir: ${{ steps.deployment_docs.outputs.artifact }}
+      if: steps.release.outputs.released == 'true'        
