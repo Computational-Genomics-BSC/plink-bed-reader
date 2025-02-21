@@ -18,16 +18,16 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 
 # -- Project information -----------------------------------------------------
-import setup_package
+import setup
 
 project = 'plink-bed-reader'
-author = setup_package.__author__
+author = setup.__author__
 copyright = '2024, ' + author
 
 # The short X.Y version
-version = setup_package.__version__
+version = setup.__version__
 # The full version, including alpha/beta/rc tags
-release = setup_package.__version__
+release = setup.__version__
 
 
 # -- General configuration ---------------------------------------------------

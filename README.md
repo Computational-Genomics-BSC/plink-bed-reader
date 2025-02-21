@@ -1,5 +1,5 @@
 # PLINK BED reader<!-- omit in toc -->
-**Lightweight and memory efficient reader for PLINK BED files**. It supports both SNP-major and individual-major formats. Written in pure Python. Check the [available documentation](https://computational-genomics-bsc.github.io/plink-bed-reader/) for more information.
+**Lightweight and memory efficient reader for PLINK BED files**. It supports both SNP-major and individual-major formats. Written in Python 3. Check the [available documentation](https://computational-genomics-bsc.github.io/plink-bed-reader/) for more information.
 
 ## Table of contents<!-- omit in toc -->
 - [Getting started](#getting-started)
